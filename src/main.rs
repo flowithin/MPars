@@ -1,4 +1,5 @@
 use core::panic;
+use std::collections::HashMap;
 
 pub trait Convert {
     fn to_string(&self) -> String;
@@ -46,7 +47,8 @@ impl Convert for Vec<Instr> {
 enum Exp {
     Num(i64),
     Add1(Box<Exp>),
-    //Sub1(Box<Exp>),
+    Sub1(Box<Exp>),
+    Let(i64, Box<Exp>),
 }
 
 enum Instr {
@@ -70,6 +72,14 @@ fn str_to_exp(content: &str) -> Result<Exp, String> {
                         str_to_exp(&content_trimmed[5..len - 1]).unwrap(),
                     )))
                 }
+
+                "Sub1(" => {
+                    return Ok(Exp::Sub1(Box::<Exp>::new(
+                        str_to_exp(&content_trimmed[5..len - 1]).unwrap(),
+                    )))
+                }
+        // TODO: add "let" binding
+
                 &_ => panic!("invalid expression{:#?}\n", &content.trim()[0..]),
             }
         }
@@ -79,9 +89,15 @@ fn str_to_exp(content: &str) -> Result<Exp, String> {
 fn exp_to_instr(e: &Exp) -> Vec<Instr> {
     match e {
         Exp::Num(n) => vec![Instr::Mov(Reg::rax("rax".to_string()), n.to_owned())],
+
         Exp::Add1(e) => {
             let mut is = exp_to_instr(e);
             is.push(Instr::Add(Reg::rax("rax".to_string()), 1));
+            is
+        }
+        Exp::Sub1(e) => {
+            let mut is = exp_to_instr(e);
+            is.push(Instr::Add(Reg::rax("rax".to_string()), -1));
             is
         }
     }
